@@ -1,10 +1,12 @@
 package com.acro5piano.futsalplayer
 
+import android.content.pm.ActivityInfo
 import android.media.MediaFormat
 import android.net.Uri
 import android.os.Handler
 import android.os.Looper
 import android.view.TextureView
+import androidx.activity.compose.LocalActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia
@@ -54,6 +56,7 @@ import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -197,6 +200,8 @@ private fun VideoPlayer(player: ExoPlayer, onPick: () -> Unit) {
         onDispose { player.clearVideoFrameMetadataListener(stepper) }
     }
     var scrubPositionMs by remember { mutableStateOf<Long?>(null) }
+    var controlsVisible by rememberSaveable { mutableStateOf(true) }
+    val activity = LocalActivity.current
 
     DisposableEffect(player) {
         fun sync() {
@@ -250,13 +255,15 @@ private fun VideoPlayer(player: ExoPlayer, onPick: () -> Unit) {
                 videoSize = ui.videoSize,
                 frameLabel = "f${stepper.frameAt(ui.positionMs, ui.fps)} · ${"%.2f".format(ui.fps)}fps",
                 error = ui.error,
+                controlsVisible = controlsVisible,
                 onPick = onPick,
+                onTap = { controlsVisible = !controlsVisible },
                 onDoubleTap = { forward -> seekBy(if (forward) DOUBLE_TAP_SEEK_MS else -DOUBLE_TAP_SEEK_MS) },
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxWidth(),
             )
-            Controls(
+            if (controlsVisible) Controls(
                 wide = wide,
                 showPlayButton = ui.showPlayButton,
                 positionMs = scrubPositionMs ?: ui.positionMs,
@@ -275,6 +282,14 @@ private fun VideoPlayer(player: ExoPlayer, onPick: () -> Unit) {
                     scrubPositionMs = null
                 },
                 onSpeed = { player.setPlaybackSpeed(it) },
+                // "Fullscreen" means landscape: system bars are always hidden already.
+                onToggleFullscreen = {
+                    activity?.requestedOrientation = if (wide) {
+                        ActivityInfo.SCREEN_ORIENTATION_SENSOR_PORTRAIT
+                    } else {
+                        ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
+                    }
+                },
             )
         }
     }
@@ -286,10 +301,13 @@ private fun ZoomableVideo(
     videoSize: VideoSize,
     frameLabel: String,
     error: String?,
+    controlsVisible: Boolean,
     onPick: () -> Unit,
+    onTap: () -> Unit,
     onDoubleTap: (forward: Boolean) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val currentOnTap by rememberUpdatedState(onTap)
     val currentOnDoubleTap by rememberUpdatedState(onDoubleTap)
     var scale by remember { mutableFloatStateOf(1f) }
     var offset by remember { mutableStateOf(Offset.Zero) }
@@ -315,9 +333,13 @@ private fun ZoomableVideo(
     Box(
         modifier
             .clipToBounds()
-            .onSizeChanged { containerSize = it }
+            .onSizeChanged {
+                containerSize = it
+                offset = clampOffset(offset, scale)
+            }
             .pointerInput(Unit) {
                 detectTapGestures(
+                    onTap = { currentOnTap() },
                     onDoubleTap = { position ->
                         val forward = position.x > size.width / 2f
                         if (seekHintForward != forward) seekHintSeconds = 0
@@ -350,7 +372,10 @@ private fun ZoomableVideo(
             onRelease = player::clearVideoTextureView,
             modifier = Modifier
                 .aspectRatio(aspect)
-                .onSizeChanged { contentSize = it }
+                .onSizeChanged {
+                    contentSize = it
+                    offset = clampOffset(offset, scale)
+                }
                 .graphicsLayer {
                     scaleX = scale
                     scaleY = scale
@@ -386,7 +411,7 @@ private fun ZoomableVideo(
         }
 
         // Top overlay: open button on the left, frame info and zoom reset on the right.
-        Row(
+        if (controlsVisible) Row(
             Modifier
                 .align(Alignment.TopCenter)
                 .fillMaxWidth()
@@ -425,7 +450,15 @@ private fun Controls(
     onScrub: (Long) -> Unit,
     onScrubFinished: () -> Unit,
     onSpeed: (Float) -> Unit,
+    onToggleFullscreen: () -> Unit,
 ) {
+    val fullscreenButton = @Composable {
+        SmallIconButton(
+            if (wide) R.drawable.ic_fullscreen_exit else R.drawable.ic_fullscreen,
+            if (wide) "Exit fullscreen" else "Fullscreen",
+            onClick = onToggleFullscreen,
+        )
+    }
     val buttons = @Composable {
         SmallIconButton(
             if (showPlayButton) R.drawable.ic_play else R.drawable.ic_pause,
@@ -489,6 +522,7 @@ private fun Controls(
                 Spacer(Modifier.width(8.dp))
                 timeline(Modifier.weight(1f))
                 SpeedButton(speed, onSpeed)
+                fullscreenButton()
             }
         } else {
             timeline(Modifier.fillMaxWidth().padding(horizontal = 8.dp))
@@ -500,6 +534,7 @@ private fun Controls(
                 buttons()
                 Spacer(Modifier.width(16.dp))
                 SpeedButton(speed, onSpeed)
+                fullscreenButton()
             }
         }
     }

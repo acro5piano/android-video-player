@@ -1,6 +1,7 @@
 package com.acro5piano.futsalplayer
 
 import android.content.Intent
+import android.content.pm.ActivityInfo
 import android.net.Uri
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -19,6 +20,8 @@ import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.media3.common.MediaItem
+import androidx.media3.common.Player
+import androidx.media3.common.VideoSize
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.SeekParameters
@@ -26,6 +29,9 @@ import androidx.media3.exoplayer.SeekParameters
 class MainActivity : ComponentActivity() {
     private lateinit var player: ExoPlayer
     private var videoUri by mutableStateOf<Uri?>(null)
+
+    // Set when a video is opened; the orientation is decided once its size is known.
+    private var autoFullscreenPending = false
 
     @OptIn(UnstableApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -39,6 +45,16 @@ class MainActivity : ComponentActivity() {
         player = ExoPlayer.Builder(this).build().apply {
             // Every seek must land on the exact requested frame, not the nearest keyframe.
             setSeekParameters(SeekParameters.EXACT)
+            addListener(object : Player.Listener {
+                override fun onVideoSizeChanged(videoSize: VideoSize) {
+                    if (!autoFullscreenPending || videoSize.width == 0 || videoSize.height == 0) return
+                    autoFullscreenPending = false
+                    // Wide videos (e.g. GoPro footage) open straight into fullscreen, i.e. landscape.
+                    if (videoSize.width * videoSize.pixelWidthHeightRatio > videoSize.height) {
+                        requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
+                    }
+                }
+            })
         }
 
         val restoredUri = savedInstanceState?.let { BundleCompat.getParcelable(it, KEY_URI, Uri::class.java) }
@@ -102,6 +118,8 @@ class MainActivity : ComponentActivity() {
             contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }
         videoUri = uri
+        // Restoring after process death keeps whatever orientation the user had chosen.
+        autoFullscreenPending = autoPlay
         player.setMediaItem(MediaItem.fromUri(uri), startPositionMs)
         player.prepare()
         player.playWhenReady = autoPlay

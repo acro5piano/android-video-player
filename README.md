@@ -2,9 +2,15 @@
 
 A minimal Android video player for reviewing futsal footage (e.g. GoPro wide view) frame by frame.
 
+<img src="docs/screenshots/landscape.png" alt="Landscape playback with compact controls" width="720">
+
+<img src="docs/screenshots/speed.png" alt="Playback speed menu" width="480"> <img src="docs/screenshots/portrait.png" alt="Portrait layout" width="160">
+
+The screenshots use a generated test clip with the frame number burned in; the `f193` label at the top right matches the frame on screen.
+
 ## Features
 
-- **Controls never auto-hide** — play/pause and frame step stay on screen. Tap the video (or the black area around it) to hide/show them yourself.
+- **Controls never auto-hide** — play/pause and frame step stay on screen.
 - **Fullscreen button** rotates to landscape (and back to portrait), like YouTube. Wide videos open in fullscreen automatically.
 - **Frame-accurate stepping** — `|◀` / `▶|` move exactly one frame (uses the file's real frame rate). Hold to repeat.
 - **Pinch to zoom** (up to 10×) and drag to pan while zoomed. Tap `N× reset` to go back.

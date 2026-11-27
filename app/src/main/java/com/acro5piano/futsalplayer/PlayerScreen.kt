@@ -8,8 +8,7 @@ import android.os.Looper
 import android.view.TextureView
 import androidx.activity.compose.LocalActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.PickVisualMediaRequest
-import androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia
+import androidx.activity.result.contract.ActivityResultContracts.OpenDocument
 import androidx.annotation.DrawableRes
 import androidx.annotation.OptIn as AndroidXOptIn
 import androidx.compose.foundation.background
@@ -96,8 +95,9 @@ private const val DEFAULT_FPS = 30f
 
 @Composable
 fun PlayerScreen(player: ExoPlayer, videoUri: Uri?, onOpen: (Uri) -> Unit) {
-    val picker = rememberLauncherForActivityResult(PickVisualMedia()) { uri -> uri?.let(onOpen) }
-    val pickVideo = { picker.launch(PickVisualMediaRequest(PickVisualMedia.VideoOnly)) }
+    // The system file picker lists local storage first; Google Photos/Drive stay reachable from its side menu.
+    val picker = rememberLauncherForActivityResult(OpenDocument()) { uri -> uri?.let(onOpen) }
+    val pickVideo = { picker.launch(arrayOf("video/*")) }
 
     Box(
         Modifier
@@ -124,7 +124,7 @@ private fun EmptyState(onPick: () -> Unit) {
         Button(onClick = onPick) { Text("Pick a video") }
         Spacer(Modifier.height(16.dp))
         Text(
-            "Google Photos videos appear in the picker, or use Share / Open with from Google Photos.",
+            "Pick a local video file, or use Share / Open with from another app.",
             color = Color.Gray,
             fontSize = 13.sp,
         )

@@ -113,7 +113,7 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun open(uri: Uri, startPositionMs: Long = 0, autoPlay: Boolean = true) {
-        // Photo picker URIs can be persisted so the video survives process death; others may not support it.
+        // Document picker URIs can be persisted so the video survives process death; others may not support it.
         runCatching {
             contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }

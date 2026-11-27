@@ -20,15 +20,19 @@ The screenshots use a generated test clip with the frame number burned in; the `
 
 ## Opening videos
 
-- Folder icon → Android photo picker (shows Google Photos cloud videos when Google Photos is the picker's cloud media app).
+- Folder icon → system file picker (local storage; Google Photos / Drive are available from its side menu).
 - From Google Photos: **Share** or **Open with** → Futsal Player.
 
 ## Build
 
 ```sh
 ./gradlew assembleDebug        # app/build/outputs/apk/debug/app-debug.apk
-./gradlew assembleRelease      # minified, signed with the debug key for sideloading
+./gradlew assembleRelease      # minified, signed with the committed app/release.jks
 adb install -r app/build/outputs/apk/release/app-release.apk
 ```
 
 Built with Kotlin, Jetpack Compose and Media3 ExoPlayer.
+
+## CI / Releases
+
+Every push to `main` runs the unit tests, bumps the patch version from the latest `v*` tag and publishes a GitHub Release with the signed APK.

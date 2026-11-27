@@ -11,8 +11,19 @@ android {
         applicationId = "com.acro5piano.futsalplayer"
         minSdk = 26
         targetSdk = 36
-        versionCode = 1
-        versionName = "1.0"
+        // CI passes these on release; local builds fall back to the defaults.
+        versionCode = (findProperty("versionCode") as String?)?.toInt() ?: 1
+        versionName = findProperty("versionName") as String? ?: "1.0.0"
+    }
+
+    signingConfigs {
+        // Personal app: the keystore is committed so CI and local builds produce update-compatible APKs.
+        create("release") {
+            storeFile = file("release.jks")
+            storePassword = "futsalplayer"
+            keyAlias = "futsalplayer"
+            keyPassword = "futsalplayer"
+        }
     }
 
     buildTypes {
@@ -20,8 +31,7 @@ android {
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"))
-            // Personal app: sign release with the debug key so it can be sideloaded directly.
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = signingConfigs.getByName("release")
         }
     }
 

@@ -20,7 +20,7 @@ The screenshots use a generated test clip with the frame number burned in; the `
 
 ## Opening videos
 
-- Folder icon → Android photo picker (shows Google Photos cloud videos when Google Photos is the picker's cloud media app).
+- Folder icon → system file picker (local storage; Google Photos / Drive are available from its side menu).
 - From Google Photos: **Share** or **Open with** → Futsal Player.
 
 ## Build
